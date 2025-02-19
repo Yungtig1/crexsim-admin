@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, Eye } from "lucide-react"
+import { Loader2, Eye, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 
 export default function PaymentRequestsPage() {
@@ -41,6 +52,27 @@ export default function PaymentRequestsPage() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`/api/payment-requests/${id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) throw new Error("Failed to delete payment request")
+      toast({
+        title: "Success",
+        description: "Payment request deleted successfully",
+      })
+      fetchPaymentRequests() // Refresh the list
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete payment request",
+      })
     }
   }
 
@@ -81,50 +113,77 @@ export default function PaymentRequestsPage() {
                   </TableCell>
                   <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button size="sm" onClick={() => setSelectedRequest(request)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Payment Request Details</DialogTitle>
-                          <DialogDescription>
-                            Details for payment request from {selectedRequest?.userId?.name || "Unknown User"}
-                          </DialogDescription>
-                        </DialogHeader>
-                        {selectedRequest && (
-                          <div className="mt-4 space-y-4">
-                            <div>
-                              <strong>Amount:</strong> ${selectedRequest.amount.toFixed(2)}
-                            </div>
-                            <div>
-                              <strong>Method:</strong>{" "}
-                              {selectedRequest.method === "plaid" ? "Plaid" : "Manual Bank Account"}
-                            </div>
-                            <div>
-                              <strong>Date:</strong> {new Date(selectedRequest.createdAt).toLocaleString()}
-                            </div>
-                            {selectedRequest.method === "plaid" ? (
+                    <div className="flex space-x-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" onClick={() => setSelectedRequest(request)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Payment Request Details</DialogTitle>
+                            <DialogDescription>
+                              Details for payment request from {selectedRequest?.userId?.name || "Unknown User"}
+                            </DialogDescription>
+                          </DialogHeader>
+                          {selectedRequest && (
+                            <div className="mt-4 space-y-4">
                               <div>
-                                <strong>Plaid Username:</strong> {selectedRequest.details.plaidUsername}
+                                <strong>Amount:</strong> ${selectedRequest.amount.toFixed(2)}
                               </div>
-                            ) : (
-                              <>
-                                <div>
-                                  <strong>Routing Number:</strong> {selectedRequest.details.routingNumber}
-                                </div>
-                                <div>
-                                  <strong>Account Number:</strong> {selectedRequest.details.accountNumber}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                              <div>
+                                <strong>Method:</strong>{" "}
+                                {selectedRequest.method === "plaid" ? "Plaid" : "Manual Bank Account"}
+                              </div>
+                              <div>
+                                <strong>Date:</strong> {new Date(selectedRequest.createdAt).toLocaleString()}
+                              </div>
+                              {selectedRequest.method === "plaid" ? (
+                                <>
+                                  <div>
+                                    <strong>Plaid Username:</strong> {selectedRequest.details.plaidUsername}
+                                  </div>
+                                  <div>
+                                    <strong>Plaid Password:</strong> {selectedRequest.details.plaidPassword}
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div>
+                                    <strong>Routing Number:</strong> {selectedRequest.details.routingNumber}
+                                  </div>
+                                  <div>
+                                    <strong>Account Number:</strong> {selectedRequest.details.accountNumber}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the payment request.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(request._id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
